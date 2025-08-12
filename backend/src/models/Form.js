@@ -14,10 +14,13 @@ const QuestionSchema = new mongoose.Schema({
     },
   ],
   passage: String, // For comprehension
-  createdAt: {
-    type: Date,
-    default: Date.now,
-  },
 });
 
-export default mongoose.model("Question", QuestionSchema);
+const FormSchema = new mongoose.Schema({
+  title: { type: String, required: true },
+  headerImage: String, // Optional header image
+  questions: [QuestionSchema],
+  createdAt: { type: Date, default: Date.now },
+});
+
+export default mongoose.model("Form", FormSchema);

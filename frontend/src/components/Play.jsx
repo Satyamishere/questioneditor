@@ -1,6 +1,7 @@
+
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { DndContext, DragOverlay, closestCorners } from "@dnd-kit/core";
+import { DndContext, closestCorners, DragOverlay } from "@dnd-kit/core";
 import { SortableContext } from "@dnd-kit/sortable";
 import DraggableItem from "./SortableItem";
 import DroppableCategory from "./DroppableCategory";
@@ -8,36 +9,42 @@ import DroppableCategory from "./DroppableCategory";
 export default function Play() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [question, setQuestion] = useState(null);
-  const [activeId, setActiveId] = useState(null);
-  const [itemsInCategories, setItemsInCategories] = useState({});
+  const [form, setForm] = useState(null);
+  const [answers, setAnswers] = useState({});
   const [submitted, setSubmitted] = useState(false);
-  const [results, setResults] = useState(null);
+  const [response, setResponse] = useState(null);
+  // For drag-and-drop
+  const [activeId, setActiveId] = useState(null);
 
   useEffect(() => {
-    const fetchQuestion = async () => {
+    const fetchForm = async () => {
       try {
-        const url = id 
-          ? `http://localhost:5000/api/questions/${id}`
-          : 'http://localhost:5000/api/questions/latest';
-        const res = await fetch(url);
+        const res = await fetch(`http://localhost:5000/api/forms/${id}`);
         const data = await res.json();
-        
-        setQuestion(data);
-        
-        // Initialize empty categories
-        const initialCategories = {};
-        data.categories.forEach(cat => {
-          initialCategories[cat] = [];
+        setForm(data);
+        // Initialize answers for each question
+        const initialAnswers = {};
+        data.questions.forEach(q => {
+          if (q.type === "categorize") {
+            // For categorize, map category to item ids
+            const catMap = {};
+            q.categories.forEach(cat => { catMap[cat] = []; });
+            initialAnswers[q._id] = catMap;
+          } else if (q.type === "cloze") {
+            initialAnswers[q._id] = "";
+          } else if (q.type === "comprehension") {
+            initialAnswers[q._id] = q.items.map(() => "");
+          }
         });
-        setItemsInCategories(initialCategories);
+        setAnswers(initialAnswers);
       } catch (err) {
-        console.error("Error fetching question:", err);
+        console.error("Error fetching form:", err);
       }
     };
-
-    fetchQuestion();
+    fetchForm();
   }, [id]);
+
+  // ...existing code...
 
   const handleDragStart = (event) => {
     setActiveId(event.active.id);
@@ -103,32 +110,7 @@ export default function Play() {
     setActiveId(null);
   };
 
-  const handleSubmit = async () => {
-    try {
-      const itemsToCheck = [];
-      
-      Object.keys(itemsInCategories).forEach(category => {
-        itemsInCategories[category].forEach(item => {
-          itemsToCheck.push({
-            id: item.id,
-            category: category
-          });
-        });
-      });
-      
-      const res = await fetch(`http://localhost:5000/api/questions/${question._id}/check`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ items: itemsToCheck }),
-      });
-      
-      const data = await res.json();
-      setResults(data);
-      setSubmitted(true);
-    } catch (err) {
-      console.error("Error checking answers:", err);
-    }
-  };
+
 
   const handleReset = () => {
     setSubmitted(false);
@@ -140,135 +122,177 @@ export default function Play() {
     setItemsInCategories(resetCategories);
   };
 
-  if (!question) return <div className="text-center py-8">Loading quiz...</div>;
+  if (!form) return <div className="text-center py-8">Loading form...</div>;
 
-  const activeItem = question.items.find(item => item.id === activeId);
+  const handleCategorizeChange = (qId, cat, itemId, checked) => {
+    setAnswers(prev => {
+      const newCatMap = { ...prev[qId] };
+      if (checked) {
+        // Add item to category
+        newCatMap[cat] = [...newCatMap[cat], itemId];
+      } else {
+        // Remove item from category
+        newCatMap[cat] = newCatMap[cat].filter(id => id !== itemId);
+      }
+      return { ...prev, [qId]: newCatMap };
+    });
+  };
+
+  const handleClozeChange = (qId, value) => {
+    setAnswers(prev => ({ ...prev, [qId]: value }));
+  };
+
+  const handleComprehensionChange = (qId, idx, value) => {
+    setAnswers(prev => {
+      const arr = [...prev[qId]];
+      arr[idx] = value;
+      return { ...prev, [qId]: arr };
+    });
+  };
+
+  const handleSubmit = async () => {
+    try {
+      const answerArr = Object.entries(answers).map(([questionId, response]) => ({ questionId, response }));
+      const res = await fetch(`http://localhost:5000/api/forms/${form._id}/response`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ answers: answerArr }),
+      });
+      const data = await res.json();
+      setResponse(data);
+      setSubmitted(true);
+    } catch (err) {
+      alert("Failed to submit response");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-100 py-8">
-      <div className="max-w-6xl mx-auto px-4">
-        <h1 className="text-3xl font-bold text-center mb-8 text-indigo-600">
-          {question.title}
-        </h1>
-        
-        <DndContext
-          collisionDetection={closestCorners}
-          onDragStart={handleDragStart}
-          onDragEnd={handleDragEnd}
-        >
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Items Section */}
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <h2 className="text-xl font-semibold mb-4 text-gray-700">Items to Categorize</h2>
-              <div className="space-y-3">
-                <SortableContext items={question.items}>
-                  {question.items.map(item => {
-                    // Check if item is already in a category
-                    const isInCategory = Object.values(itemsInCategories)
-                      .flat()
-                      .some(catItem => catItem.id === item.id);
-                    
-                    if (!isInCategory) {
-                      return (
-                        <DraggableItem 
-                          key={item.id} 
-                          id={item.id} 
-                          item={item}
-                          disabled={submitted}
-                        />
-                      );
+      <div className="max-w-4xl mx-auto px-4">
+        <h1 className="text-3xl font-bold text-center mb-8 text-indigo-600">{form.title}</h1>
+        {form.headerImage && <img src={form.headerImage} alt="Header" className="mx-auto mb-6 max-h-60" />}
+        <form className="space-y-8">
+          {form.questions.map((q, qIdx) => (
+            <div key={q._id || q.id} className="bg-white p-6 rounded-lg shadow-md mb-8">
+              <div className="mb-2 flex items-center gap-4">
+                <span className="font-semibold text-lg">Q{qIdx + 1} ({q.type})</span>
+                {q.image && <img src={q.image} alt="Q" className="max-h-16" />}
+              </div>
+              <div className="mb-2 text-gray-800">{q.text}</div>
+              {q.type === "categorize" ? (
+                <DndContext
+                  collisionDetection={closestCorners}
+                  onDragStart={event => setActiveId(event.active.id)}
+                  onDragEnd={event => {
+                    const { active, over } = event;
+                    if (!over) { setActiveId(null); return; }
+                    const activeId = active.id;
+                    const overId = over.id;
+                    if (activeId === overId) { setActiveId(null); return; }
+                    // Find which category the item is currently in (if any)
+                    let currentCategory = null;
+                    Object.entries(answers[q._id]).forEach(([cat, items]) => {
+                      if (items.includes(activeId)) currentCategory = cat;
+                    });
+                    // Remove from current category
+                    const newCatMap = { ...answers[q._id] };
+                    if (currentCategory) {
+                      newCatMap[currentCategory] = newCatMap[currentCategory].filter(id => id !== activeId);
                     }
-                    return null;
-                  })}
-                </SortableContext>
-              </div>
-            </div>
-            
-            {/* Categories Section */}
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <h2 className="text-xl font-semibold mb-4 text-gray-700">Categories</h2>
-              <div className="space-y-6">
-                {question.categories.map(category => (
-                  <DroppableCategory 
-                    key={category} 
-                    id={category}
-                    items={itemsInCategories[category] || []}
-                    results={results}
-                    submitted={submitted}
-                  />
-                ))}
-              </div>
-            </div>
-          </div>
-          
-          <DragOverlay>
-            {activeItem ? (
-              <div className="bg-yellow-100 border border-yellow-300 rounded-lg p-3 shadow-lg cursor-grabbing">
-                {activeItem.text}
-              </div>
-            ) : null}
-          </DragOverlay>
-        </DndContext>
-        
-        <div className="mt-8 flex justify-center gap-4">
-          {!submitted ? (
-            <button
-              onClick={handleSubmit}
-              disabled={Object.values(itemsInCategories).flat().length !== question.items.length}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg text-lg font-medium disabled:bg-gray-400"
-            >
-              Check Answers
-            </button>
-          ) : (
-            <>
-              <button
-                onClick={handleReset}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg text-lg font-medium"
-              >
-                Try Again
-              </button>
-              <button
-                onClick={() => navigate('/editor')}
-                className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg text-lg font-medium"
-              >
-                Create New Quiz
-              </button>
-            </>
-          )}
-        </div>
-        
-        {submitted && results && (
-          <div className="mt-8 bg-white p-6 rounded-lg shadow-md">
-            <h2 className="text-2xl font-bold mb-4 text-center">
-              Results: {results.score}/{results.total} ({results.percentage}%)
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {question.categories.map(category => (
-                <div key={category} className="border rounded-lg p-4">
-                  <h3 className="font-semibold text-lg mb-3">{category}</h3>
-                  <ul className="space-y-2">
-                    {results.results
-                      .filter(result => result.givenCategory === category)
-                      .map((result, i) => (
-                        <li 
-                          key={i} 
-                          className={`p-2 rounded ${result.isCorrect ? 'bg-green-100' : 'bg-red-100'}`}
-                        >
-                          <span className="font-medium">{result.text}</span>
-                          {!result.isCorrect && (
-                            <span className="text-sm text-gray-600 ml-2">
-                              (Correct: {result.correctCategory})
-                            </span>
-                          )}
-                        </li>
-                      ))}
-                  </ul>
+                    // Add to new category
+                    if (q.categories.includes(overId)) {
+                      newCatMap[overId] = [...newCatMap[overId], activeId];
+                    }
+                    setAnswers(prev => ({ ...prev, [q._id]: newCatMap }));
+                    setActiveId(null);
+                  }}
+                >
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    {/* Items Section */}
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <h2 className="text-lg font-semibold mb-2 text-gray-700">Items</h2>
+                      <SortableContext items={q.items.map(item => item.id)}>
+                        {q.items.filter(item => {
+                          // Not in any category
+                          return !Object.values(answers[q._id]).flat().includes(item.id);
+                        }).map(item => (
+                          <DraggableItem key={item.id} id={item.id} item={item} disabled={submitted} />
+                        ))}
+                      </SortableContext>
+                    </div>
+                    {/* Categories Section */}
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <h2 className="text-lg font-semibold mb-2 text-gray-700">Categories</h2>
+                      <div className="space-y-4">
+                        {q.categories.map(category => (
+                          <DroppableCategory
+                            key={category}
+                            id={category}
+                            items={q.items.filter(item => answers[q._id][category].includes(item.id))}
+                            results={null}
+                            submitted={submitted}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  <DragOverlay>
+                    {activeId ? (
+                      <div className="bg-yellow-100 border border-yellow-300 rounded-lg p-3 shadow-lg cursor-grabbing">
+                        {q.items.find(item => item.id === activeId)?.text}
+                      </div>
+                    ) : null}
+                  </DragOverlay>
+                </DndContext>
+              ) : null}
+              {q.type === "cloze" && (
+                <input
+                  type="text"
+                  className="border rounded-lg p-2 w-full"
+                  value={answers[q._id] || ""}
+                  onChange={e => handleClozeChange(q._id, e.target.value)}
+                  placeholder="Type your answer..."
+                />
+              )}
+              {q.type === "comprehension" && (
+                <div>
+                  {q.passage && <div className="mb-2 p-2 bg-gray-100 rounded">{q.passage}</div>}
+                  {q.items.map((item, idx) => (
+                    <div key={item.id} className="mb-2">
+                      <div>{item.text}</div>
+                      <input
+                        type="text"
+                        className="border rounded-lg p-2 w-full"
+                        value={answers[q._id][idx] || ""}
+                        onChange={e => handleComprehensionChange(q._id, idx, e.target.value)}
+                        placeholder="Type your answer..."
+                      />
+                    </div>
+                  ))}
                 </div>
-              ))}
+              )}
             </div>
+          ))}
+        </form>
+        <div className="flex justify-center mt-8">
+          <button
+            type="button"
+            onClick={handleSubmit}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-3 rounded-lg text-lg font-medium"
+            disabled={submitted}
+          >
+            Submit
+          </button>
+        </div>
+        {submitted && response && (
+          <div className="mt-8 bg-white p-6 rounded-lg shadow-md text-center">
+            <h2 className="text-2xl font-bold mb-4">Thank you for submitting!</h2>
+            <div className="text-xl mb-2">Score: {response.score} / {response.total}</div>
+            <div className="text-lg">Percentage: {response.percentage}%</div>
           </div>
         )}
       </div>
     </div>
   );
+// ...existing code...
 }

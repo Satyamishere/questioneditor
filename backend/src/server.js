@@ -2,6 +2,7 @@ import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
 import questionRoutes from "./routes/questionRoutes.js";
+import formRoutes from "./routes/formRoutes.js";
 
 const app = express();
 app.use(cors());
@@ -15,6 +16,8 @@ mongoose
   .then(() => console.log("MongoDB connected"))
   .catch((err) => console.error(err));
 
+
+app.use("/api/forms", formRoutes);
 app.use("/api/questions", questionRoutes);
 
 const PORT = 5000;

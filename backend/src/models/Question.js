@@ -14,6 +14,8 @@ const QuestionSchema = new mongoose.Schema({
     },
   ],
   passage: String, // For comprehension
+  options: [String], // For comprehension
+  correctAnswers: [Number], // For comprehension (indices of correct options)
   createdAt: {
     type: Date,
     default: Date.now,

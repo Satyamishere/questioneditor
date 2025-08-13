@@ -1,5 +1,6 @@
 
-import { useState } from "react";
+import React, { useState } from "react";
+import ComprehensionEditor from "./ComprehensionEditor";
 import { useNavigate } from "react-router-dom";
 import { v4 as uuidv4 } from 'uuid';
 
@@ -64,7 +65,6 @@ export default function Editor() {
     setItems(items.filter(item => item.correctCategory !== catToRemove));
   };
 
-  // Helper to handle image upload as base64
   const handleHeaderImage = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -73,7 +73,6 @@ export default function Editor() {
     reader.readAsDataURL(file);
   };
 
-  // Add, update, remove question logic (for multiple question types)
   const addQuestion = () => {
     setQuestions([
       ...questions,
@@ -90,7 +89,16 @@ export default function Editor() {
 
   const updateQuestion = (index, field, value) => {
     const newQuestions = [...questions];
-    newQuestions[index][field] = value;
+    if (field === "type" && value === "cloze") {
+      newQuestions[index] = {
+        ...newQuestions[index],
+        type: "cloze",
+        blanks: newQuestions[index].blanks || [],
+        options: newQuestions[index].options || [],
+      };
+    } else {
+      newQuestions[index][field] = value;
+    }
     setQuestions(newQuestions);
   };
 
@@ -111,6 +119,12 @@ export default function Editor() {
   };
 
   const saveForm = async () => {
+    for (const q of questions) {
+      if (q.type === 'categorize' && q.items.some(item => !item.text.trim())) {
+        alert('All item texts must be filled in for categorize questions.');
+        return;
+      }
+    }
     try {
       const res = await fetch("http://localhost:5000/api/forms", {
         method: "POST",
@@ -126,135 +140,150 @@ export default function Editor() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 py-8">
-      <div className="max-w-4xl mx-auto bg-white p-6 rounded-lg shadow-md">
-        <div className="mb-8">
-          <label className="block text-lg font-semibold mb-2 text-gray-700">Form Title</label>
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="w-full border border-gray-300 rounded-lg p-3 text-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-            placeholder="Enter form title"
-          />
-        </div>
-        <div className="mb-8">
-          <label className="block text-lg font-semibold mb-2 text-gray-700">Header Image</label>
-          <input type="file" accept="image/*" onChange={handleHeaderImage} />
-          {headerImage && <img src={headerImage} alt="Header Preview" className="mt-2 max-h-40" />}
-        </div>
-        <div className="mb-8">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold text-gray-700">Questions</h2>
-            <button
-              onClick={addQuestion}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg"
-            >
-              Add Question
-            </button>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 via-white to-pink-100 py-10">
+      <div className="w-full max-w-lg bg-white p-10 rounded-3xl shadow-2xl border border-gray-100 flex flex-col items-center">
+        <h1 className="text-4xl font-extrabold text-center text-indigo-700 mb-10 tracking-tight drop-shadow">Custom Form Builder</h1>
+  <form className="w-full" onSubmit={e => { e.preventDefault(); saveForm(); }}>
+          <div className="mb-10 flex flex-col md:flex-row md:items-center gap-8">
+            <div className="flex-1">
+              <label className="block text-lg font-bold mb-2 text-gray-700">Form Title</label>
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="w-full border border-indigo-200 rounded-xl p-3 text-lg focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 bg-indigo-50 shadow-sm"
+                placeholder="Enter form title"
+                required
+              />
+            </div>
+            <div className="flex-1">
+              <label className="block text-lg font-bold mb-2 text-gray-700">Header Image</label>
+              <input type="file" accept="image/*" onChange={handleHeaderImage} className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100" />
+              {headerImage && <img src={headerImage} alt="Header Preview" className="mt-2 max-h-32 rounded-lg border shadow" />}
+            </div>
           </div>
-          <div className="space-y-6">
-            {questions.map((q, qIdx) => (
-              <div key={q.id} className="border p-4 rounded-lg bg-gray-50">
-                <div className="flex gap-3 mb-2">
-                  <select
-                    value={q.type}
-                    onChange={e => updateQuestion(qIdx, "type", e.target.value)}
-                    className="border rounded-lg p-2"
-                  >
-                    <option value="categorize">Categorize</option>
-                    <option value="cloze">Cloze</option>
-                    <option value="comprehension">Comprehension</option>
-                  </select>
-                  <input
-                    type="text"
-                    value={q.text}
-                    onChange={e => updateQuestion(qIdx, "text", e.target.value)}
-                    className="flex-1 border rounded-lg p-2"
-                    placeholder="Question text"
-                  />
-                  <input type="file" accept="image/*" onChange={e => handleQuestionImage(qIdx, e)} />
-                  {q.image && <img src={q.image} alt="Q" className="max-h-12" />}
-                  <button onClick={() => removeQuestion(qIdx)} className="bg-red-600 text-white px-2 rounded-lg">Remove</button>
-                </div>
-                {/* Render question-type-specific fields here (for brevity, only categorize shown) */}
+          <div className="mb-10">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-indigo-700">Questions</h2>
+              <button
+                type="button"
+                onClick={addQuestion}
+                className="bg-gradient-to-r from-indigo-500 to-pink-500 hover:from-indigo-600 hover:to-pink-600 text-white px-7 py-2 rounded-xl shadow-lg font-semibold text-lg"
+              >
+                + Add Question
+              </button>
+            </div>
+            <div className="space-y-10">
+              {questions.map((q, qIdx) => (
+                <div key={q.id} className="border-2 border-indigo-100 p-6 rounded-2xl bg-indigo-50 shadow-md relative transition-all hover:shadow-xl">
+                  <div className="flex flex-col md:flex-row gap-4 mb-4 items-center">
+                    <select
+                      value={q.type}
+                      onChange={e => updateQuestion(qIdx, "type", e.target.value)}
+                      className="border border-indigo-200 rounded-lg p-2 bg-white focus:ring-2 focus:ring-indigo-300 font-semibold"
+                    >
+                      <option value="categorize">Categorize</option>
+                      <option value="comprehension">Comprehension</option>
+                    </select>
+                    <input
+                      type="text"
+                      value={q.text}
+                      onChange={e => updateQuestion(qIdx, "text", e.target.value)}
+                      className="flex-1 border border-indigo-200 rounded-lg p-2 bg-white focus:ring-2 focus:ring-indigo-300"
+                      placeholder="Question text"
+                      required
+                    />
+                    <button type="button" onClick={() => removeQuestion(qIdx)} className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-full shadow-lg text-xl">×</button>
+                  </div>
                 {q.type === "categorize" && (
-                  <div>
-                    <div className="flex gap-2 mb-2">
-                      {q.categories.map((cat, cIdx) => (
-                        <input
-                          key={cIdx}
-                          type="text"
-                          value={cat}
-                          onChange={e => {
-                            const newCats = [...q.categories];
-                            newCats[cIdx] = e.target.value;
-                            updateQuestion(qIdx, "categories", newCats);
-                          }}
-                          className="border rounded-lg p-1"
-                          placeholder={`Category ${cIdx + 1}`}
-                        />
+                  <div className="mb-4">
+                    <div className="mb-2 font-semibold">Categories:</div>
+                    <div className="flex flex-wrap gap-2 mb-2">
+                      {q.categories.map((cat, catIdx) => (
+                        <span key={catIdx} className="flex items-center gap-1">
+                          <input
+                            type="text"
+                            value={cat}
+                            onChange={e => {
+                              const newCats = [...q.categories];
+                              newCats[catIdx] = e.target.value;
+                              updateQuestion(qIdx, "categories", newCats);
+                            }}
+                            className="border rounded p-1"
+                          />
+                          {q.categories.length > 1 && (
+                            <button type="button" onClick={() => {
+                              const newCats = q.categories.filter((_, i) => i !== catIdx);
+                              updateQuestion(qIdx, "categories", newCats);
+                              updateQuestion(qIdx, "items", q.items.filter(item => item.correctCategory !== cat));
+                            }} className="text-red-500">×</button>
+                          )}
+                        </span>
                       ))}
-                      <button onClick={() => {
-                        const newCats = [...q.categories, `Category ${q.categories.length + 1}`];
-                        updateQuestion(qIdx, "categories", newCats);
-                      }} className="bg-green-600 text-white px-2 rounded-lg">Add Category</button>
+                      <button type="button" onClick={() => {
+                        updateQuestion(qIdx, "categories", [...q.categories, `Category ${q.categories.length + 1}`]);
+                      }} className="bg-blue-100 text-blue-700 px-2 rounded">+ Add Category</button>
                     </div>
-                    <div className="space-y-2">
-                      {q.items.map((item, iIdx) => (
-                        <div key={item.id} className="flex gap-2 items-center">
+                    <div className="mb-2 font-semibold">Items:</div>
+                    <div className="space-y-2 mb-2">
+                      {q.items.map((item, itemIdx) => (
+                        <div key={item.id} className="flex items-center gap-2">
                           <input
                             type="text"
                             value={item.text}
                             onChange={e => {
                               const newItems = [...q.items];
-                              newItems[iIdx].text = e.target.value;
+                              newItems[itemIdx] = { ...item, text: e.target.value };
                               updateQuestion(qIdx, "items", newItems);
                             }}
-                            className="flex-1 border rounded-lg p-1"
-                            placeholder="Item text"
+                            className="border rounded p-1 flex-1"
+                            placeholder={`Item ${itemIdx + 1}`}
                           />
                           <select
                             value={item.correctCategory}
                             onChange={e => {
                               const newItems = [...q.items];
-                              newItems[iIdx].correctCategory = e.target.value;
+                              newItems[itemIdx] = { ...item, correctCategory: e.target.value };
                               updateQuestion(qIdx, "items", newItems);
                             }}
-                            className="border rounded-lg p-1"
+                            className="border rounded p-1"
                           >
-                            {q.categories.map((cat, idx) => (
-                              <option key={idx} value={cat}>{cat}</option>
+                            {q.categories.map(cat => (
+                              <option key={cat} value={cat}>{cat}</option>
                             ))}
                           </select>
-                          <button onClick={() => {
-                            const newItems = q.items.filter((_, idx) => idx !== iIdx);
+                          <button type="button" onClick={() => {
+                            const newItems = q.items.filter((_, i) => i !== itemIdx);
                             updateQuestion(qIdx, "items", newItems);
-                          }} className="bg-red-600 text-white px-2 rounded-lg">×</button>
+                          }} className="text-red-500">×</button>
                         </div>
                       ))}
-                      <button onClick={() => {
-                        const newItems = [...q.items, { id: uuidv4(), text: "", correctCategory: q.categories[0] }];
-                        updateQuestion(qIdx, "items", newItems);
-                      }} className="bg-blue-600 text-white px-2 rounded-lg">Add Item</button>
+                      <button type="button" onClick={() => {
+                        updateQuestion(qIdx, "items", [...q.items, { id: uuidv4(), text: "", correctCategory: q.categories[0] }]);
+                      }} className="bg-blue-100 text-blue-700 px-2 rounded">+ Add Item</button>
                     </div>
                   </div>
                 )}
-                {/* TODO: Add UI for cloze and comprehension types */}
+                {q.type === "comprehension" && (
+                  <ComprehensionEditor q={q} qIdx={qIdx} updateQuestion={updateQuestion} />
+                )}
               </div>
             ))}
           </div>
         </div>
         <div className="flex justify-center">
           <button
-            onClick={saveForm}
+            type="submit"
             className="bg-purple-600 hover:bg-purple-700 text-white px-8 py-3 rounded-lg text-lg font-medium"
             disabled={questions.length === 0}
           >
             Save & Play
           </button>
         </div>
-      </div>
+      </form>
+    </div>
+
     </div>
   );
 }
+

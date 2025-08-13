@@ -9,11 +9,13 @@ const QuestionSchema = new mongoose.Schema({
     {
       id: String,
       text: String,
-      correctCategory: String, // For categorize
-      answer: String, // For cloze/comprehension
+      correctCategory: String, 
+      answer: String, 
     },
   ],
-  passage: String, // For comprehension
+  passage: String, 
+  options: [String], // For comprehension
+  correctAnswers: [Number], // For comprehension
 });
 
 const FormSchema = new mongoose.Schema({

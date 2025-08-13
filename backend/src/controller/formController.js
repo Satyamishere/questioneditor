@@ -11,6 +11,7 @@ export const createForm = async (req, res) => {
   }
 };
 
+
 export const getFormById = async (req, res) => {
   try {
     const form = await Form.findById(req.params.id);
@@ -21,6 +22,8 @@ export const getFormById = async (req, res) => {
   }
 };
 
+
+
 export const submitResponse = async (req, res) => {
   try {
     const form = await Form.findById(req.params.id);
@@ -28,7 +31,11 @@ export const submitResponse = async (req, res) => {
     const answers = req.body.answers;
     let correct = 0;
     let total = 0;
+
+
     // Go through each question
+
+    
     form.questions.forEach((q) => {
       const userAnswer = answers.find(a => a.questionId == q._id.toString());
       if (!userAnswer) return;
@@ -50,7 +57,20 @@ export const submitResponse = async (req, res) => {
           }
         });
       }
-      // TODO: Add scoring for cloze and comprehension
+      // Scoring for comprehension (checkbox options)
+      if (q.type === "comprehension") {
+        total++;
+        // userAnswer.response is array of selected indices
+        // q.correctAnswers is array of correct indices
+        const user = Array.isArray(userAnswer.response) ? userAnswer.response.map(Number).sort((a, b) => a - b) : [];
+        const correctAns = Array.isArray(q.correctAnswers) ? q.correctAnswers.map(Number).sort((a, b) => a - b) : [];
+        if (
+          user.length === correctAns.length &&
+          user.every((v, i) => v === correctAns[i])
+        ) {
+          correct++;
+        }
+      }
     });
     const percentage = total > 0 ? Math.round((correct / total) * 100) : 0;
     const response = new Response({

@@ -1,3 +1,4 @@
+
 import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
@@ -19,8 +20,9 @@ mongoose.connect(process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/dragdropq
 app.use("/api/forms", formRoutes);
 app.use("/api/questions", questionRoutes);
 
-// Export the Express app for Vercel
-export default app;
+
+// Export the Express app for Vercel (CommonJS)
+module.exports = app;
 
 // Local development listener
 if (process.env.NODE_ENV !== 'production') {

@@ -17,8 +17,12 @@
       "dest": "backend/src/server.js"
     },
     {
+      "src": "/(.*)\\.(js|css|svg|png|jpg|jpeg|gif|ico|json|txt|woff2?)$",
+      "dest": "/frontend/dist/$1.$2"
+    },
+    {
       "src": "/(.*)",
-      "dest": "/frontend/dist/$1"
+      "dest": "/frontend/dist/index.html"
     }
   ]
 }

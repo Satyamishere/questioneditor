@@ -1,6 +1,6 @@
-import Question from "../models/Question.js";
+const Question = require("../models/Question.js");
 
-export const createQuestion = async (req, res) => {
+const createQuestion = async (req, res) => {
   try {
     let questionData = { ...req.body };
 
@@ -32,7 +32,7 @@ export const createQuestion = async (req, res) => {
   }
 };
 
-export const getQuestionById = async (req, res) => {
+const getQuestionById = async (req, res) => {
   try {
     const question = await Question.findById(req.params.id);
     if (!question) {
@@ -44,7 +44,7 @@ export const getQuestionById = async (req, res) => {
   }
 };
 
-export const getLatestQuestion = async (req, res) => {
+const getLatestQuestion = async (req, res) => {
   try {
     const latest = await Question.findOne().sort({ createdAt: -1 });
     if (!latest) {
@@ -63,7 +63,7 @@ export const getLatestQuestion = async (req, res) => {
   }
 };
 
-export const checkAnswers = async (req, res) => {
+const checkAnswers = async (req, res) => {
   try {
     const question = await Question.findById(req.params.id);
     if (!question) {
@@ -137,4 +137,10 @@ export const checkAnswers = async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
+};
+module.exports = {
+  createQuestion,
+  getQuestionById,
+  getLatestQuestion,
+  checkAnswers
 };

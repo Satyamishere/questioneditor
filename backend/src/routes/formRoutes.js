@@ -1,10 +1,13 @@
-import express from "express";
-import { createForm, getFormById, submitResponse } from "../controller/formController.js";
+
+const express = require("express");
+const { createForm, getFormById, submitResponse } = require("../controller/formController.js");
+
 
 const router = express.Router();
+
 
 router.post("/", createForm);
 router.get("/:id", getFormById);
 router.post("/:id/response", submitResponse);
 
-export default router;
+module.exports = router;

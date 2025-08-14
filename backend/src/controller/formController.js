@@ -1,7 +1,7 @@
-import Form from "../models/Form.js";
-import Response from "../models/Response.js";
+const Form = require("../models/Form.js");
+const Response = require("../models/Response.js");
 
-export const createForm = async (req, res) => {
+const createForm = async (req, res) => {
   try {
     const form = new Form(req.body);
     await form.save();
@@ -12,7 +12,7 @@ export const createForm = async (req, res) => {
 };
 
 
-export const getFormById = async (req, res) => {
+const getFormById = async (req, res) => {
   try {
     const form = await Form.findById(req.params.id);
     if (!form) return res.status(404).json({ message: "Form not found" });
@@ -24,7 +24,7 @@ export const getFormById = async (req, res) => {
 
 
 
-export const submitResponse = async (req, res) => {
+const submitResponse = async (req, res) => {
   try {
     const form = await Form.findById(req.params.id);
     if (!form) return res.status(404).json({ message: "Form not found" });
@@ -32,10 +32,7 @@ export const submitResponse = async (req, res) => {
     let correct = 0;
     let total = 0;
 
-
     // Go through each question
-
-    
     form.questions.forEach((q) => {
       const userAnswer = answers.find(a => a.questionId == q._id.toString());
       if (!userAnswer) return;
@@ -82,4 +79,10 @@ export const submitResponse = async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
+};
+
+module.exports = {
+  createForm,
+  getFormById,
+  submitResponse
 };

@@ -126,7 +126,7 @@ export default function Editor() {
       }
     }
     try {
-      const res = await fetch("http://localhost:5000/api/forms", {
+  const res = await fetch("/api/forms", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title, headerImage, questions }),

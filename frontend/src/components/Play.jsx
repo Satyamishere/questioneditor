@@ -19,7 +19,7 @@ export default function Play() {
   useEffect(() => {
     const fetchForm = async () => {
       try {
-        const res = await fetch(`http://localhost:5000/api/forms/${id}`);
+  const res = await fetch(`/api/forms/${id}`);
         const data = await res.json();
         setForm(data);
         const initialAnswers = {};
@@ -127,7 +127,7 @@ export default function Play() {
         }
       });
       const answerArr = Object.entries(mergedAnswers).map(([questionId, response]) => ({ questionId, response }));
-      const res = await fetch(`http://localhost:5000/api/forms/${form._id}/response`, {
+  const res = await fetch(`/api/forms/${form._id}/response`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ answers: answerArr }),

@@ -25,11 +25,5 @@
         "Cache-Control": "s-maxage=0"
       }
     }
-  ],
-  "rewrites": [
-    { 
-      "source": "/(.*)", 
-      "destination": "/index.html" 
-    }
   ]
 }

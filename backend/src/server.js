@@ -1,9 +1,9 @@
 
-import express from "express";
-import mongoose from "mongoose";
-import cors from "cors";
-import questionRoutes from "./routes/questionRoutes.js";
-import formRoutes from "./routes/formRoutes.js";
+const express = require("express");
+const mongoose = require("mongoose");
+const cors = require("cors");
+const questionRoutes = require("./routes/questionRoutes.js");
+const formRoutes = require("./routes/formRoutes.js");
 
 const app = express();
 app.use(cors());

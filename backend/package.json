@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node src/server.js"
   },
-  "type": "module",
+
   "author": "",
   "license": "ISC",
   "dependencies": {

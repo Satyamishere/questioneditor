@@ -6,9 +6,6 @@
       "use": "@vercel/node"
     },
     {
-    "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
-    },
-    {
       "src": "frontend/package.json",
       "use": "@vercel/static-build",
       "config": {
@@ -27,6 +24,12 @@
       "headers": {
         "Cache-Control": "s-maxage=0"
       }
+    }
+  ],
+  "rewrites": [
+    { 
+      "source": "/(.*)", 
+      "destination": "/index.html" 
     }
   ]
 }

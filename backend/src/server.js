@@ -9,7 +9,7 @@ const app = express();
 app.use(cors({
   origin: '*',
 }));
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 
 // MongoDB connection - use environment variable
 mongoose.connect(process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/dragdropquiz", {

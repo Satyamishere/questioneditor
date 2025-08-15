@@ -126,7 +126,7 @@ export default function Editor() {
       }
     }
     try {
-  const res = await fetch("/api/forms", {
+  const res = await fetch("https://questioneditor-backend.onrender.com/api/forms", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title, headerImage, questions }),

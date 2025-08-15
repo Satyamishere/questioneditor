@@ -19,6 +19,7 @@ mongoose.connect(process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/dragdropq
 
 app.use("/api/forms", formRoutes);
 app.use("/api/questions", questionRoutes);
+app.get('/api/test', (req, res) => res.send('API is working!'));
 
 
 // Export the Express app for Vercel (CommonJS)

@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+const mongoose = require("mongoose");
 
 const QuestionSchema = new mongoose.Schema({
   type: { type: String, enum: ["categorize", "cloze", "comprehension"], required: true },
@@ -25,4 +25,4 @@ const FormSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now },
 });
 
-export default mongoose.model("Form", FormSchema);
+module.exports = mongoose.model("Form", FormSchema);

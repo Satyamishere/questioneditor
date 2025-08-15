@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+const mongoose = require("mongoose");
 
 const ResponseSchema = new mongoose.Schema({
   formId: { type: mongoose.Schema.Types.ObjectId, ref: "Form", required: true },
@@ -11,4 +11,4 @@ const ResponseSchema = new mongoose.Schema({
   submittedAt: { type: Date, default: Date.now },
 });
 
-export default mongoose.model("Response", ResponseSchema);
+module.exports = mongoose.model("Response", ResponseSchema);

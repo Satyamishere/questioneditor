@@ -6,7 +6,9 @@ const questionRoutes = require("./routes/questionRoutes.js");
 const formRoutes = require("./routes/formRoutes.js");
 
 const app = express();
-app.use(cors());
+app.use(cors({
+  origin: '*',
+}));
 app.use(express.json());
 
 // MongoDB connection - use environment variable
